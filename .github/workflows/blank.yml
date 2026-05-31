@@ -1,4 +1,4 @@
-# REV: 013 - 2026-05-31 19:30 - FIX SCHEDULE + CRON
+# REV: 015 - 2026-05-31 21:00 - FULL DEBUG MODE
 name: Mantieni Progetto Attivo
 
 on:
@@ -12,22 +12,93 @@ jobs:
     steps:
       - name: STEP 1 - Avvio workflow
         run: |
-          echo "=== STEP 1 ==="
-          echo "Workflow avviato: $(date)"
-          echo "==============="
+          echo "=== STEP 1 - AVVIO ==="
+          echo "Data e ora: $(date)"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "======================"
 
       - name: STEP 2 - Genero LICENSE_KEY
         run: |
-          echo "=== STEP 2 ==="
+          echo "=== STEP 2 - LICENSE KEY ==="
           LICENSE_KEY="KEEPALIVE-$(date +%s)"
-          echo "LICENSE_KEY: $LICENSE_KEY"
+          echo "LICENSE_KEY generata: $LICENSE_KEY"
           echo "LICENSE_KEY=$LICENSE_KEY" >> $GITHUB_ENV
-          echo "==============="
+          echo "Verifica GITHUB_ENV:"
+          cat $GITHUB_ENV
+          echo "============================"
 
-      - name: STEP 3 - Invio a Supabase
+      - name: STEP 3 - Verifica connessione internet
         run: |
-          echo "=== STEP 3 ==="
-          HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" -X POST \
+          echo "=== STEP 3 - CONNESSIONE ==="
+          echo "Ping a google.com:"
+          curl -s -o /dev/null -w "HTTP Status google: %{http_code}\n" https://www.google.com
+          echo "Ping a supabase.com:"
+          curl -s -o /dev/null -w "HTTP Status supabase: %{http_code}\n" https://supabase.com
+          echo "============================"
+
+      - name: STEP 4 - Verifica raggiungibilita progetto Supabase
+        run: |
+          echo "=== STEP 4 - PROGETTO SUPABASE ==="
+          echo "Controllo se il progetto risponde..."
+          HTTP=$(curl -s -o response_ping.txt -w "%{http_code}" \
+            "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/users?limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}")
+          echo "HTTP Status progetto: $HTTP"
+          echo "Risposta: $(cat response_ping.txt)"
+          if [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ]; then
+            echo "PROGETTO RAGGIUNGIBILE"
+          else
+            echo "ERRORE - Progetto non raggiungibile"
+            exit 1
+          fi
+          echo "=================================="
+
+      - name: STEP 5 - Verifica utente esiste in users
+        run: |
+          echo "=== STEP 5 - VERIFICA UTENTE ==="
+          HTTP=$(curl -s -o response_user.txt -w "%{http_code}" \
+            "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/users?email=eq.ingnichettigb@gmail.com" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}")
+          echo "HTTP Status: $HTTP"
+          echo "Risposta: $(cat response_user.txt)"
+          COUNT=$(cat response_user.txt | grep -o '"id"' | wc -l)
+          echo "Utenti trovati: $COUNT"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "UTENTE NON TROVATO - creazione automatica..."
+            curl -s -X POST \
+              "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/users" \
+              -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
+              -H "Content-Type: application/json" \
+              -H "Prefer: return=representation" \
+              -d "{
+                \"email\": \"ingnichettigb@gmail.com\",
+                \"name\": \"Gian Test\",
+                \"phone_number\": \"+390000000000\"
+              }"
+            echo "Utente creato"
+          else
+            echo "UTENTE TROVATO - procedo"
+          fi
+          echo "================================"
+
+      - name: STEP 6 - Inserisco licenza in Supabase
+        run: |
+          echo "=== STEP 6 - INSERIMENTO LICENZA ==="
+          echo "LICENSE_KEY da ENV: $LICENSE_KEY"
+          echo "Payload che invio:"
+          echo "{
+            user_email: ingnichettigb@gmail.com
+            device_id: device-keepalive-${{ github.run_id }}
+            license_key: $LICENSE_KEY
+            app_id: 47f798c0-9430-4d72-bb8d-b91b72944262
+          }"
+          echo "Invio richiesta a Supabase..."
+          HTTP_STATUS=$(curl -s -o response_license.txt -w "%{http_code}" -X POST \
             "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
@@ -47,11 +118,32 @@ jobs:
               \"apk_sent\": false
             }")
           echo "HTTP Status: $HTTP_STATUS"
-          echo "Risposta: $(cat response.txt)"
+          echo "Risposta completa: $(cat response_license.txt)"
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-            echo "SUCCESSO"
+            echo "LICENZA INSERITA CON SUCCESSO"
           else
-            echo "ERRORE - Status: $HTTP_STATUS"
+            echo "ERRORE INSERIMENTO LICENZA"
             exit 1
           fi
-          echo "==============="
+          echo "===================================="
+
+      - name: STEP 7 - Verifica trigger attivi su Supabase
+        run: |
+          echo "=== STEP 7 - VERIFICA TRIGGER ==="
+          echo "Controllo trigger attivi tramite RPC..."
+          HTTP=$(curl -s -o response_trigger.txt -w "%{http_code}" \
+            "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/rpc/check_triggers" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}")
+          echo "HTTP Status: $HTTP"
+          echo "Risposta: $(cat response_trigger.txt)"
+          echo "================================="
+
+      - name: STEP 8 - Riepilogo finale
+        run: |
+          echo "=== STEP 8 - RIEPILOGO ==="
+          echo "Workflow completato alle: $(date)"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "LICENSE_KEY usata: $LICENSE_KEY"
+          echo "Se tutto verde controlla Gmail per le 2 email"
+          echo "=========================="
