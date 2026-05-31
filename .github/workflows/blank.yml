@@ -1,4 +1,4 @@
-# REV: 008 — 2026-05-31 18:25 — File attivo
+# REV: 008a — 2026-05-31 18:30 — File attivo
 name: Mantieni Progetto Attivo
 
 on:
@@ -14,29 +14,14 @@ jobs:
         run: |
           echo "Esecuzione workflow REV 008 — $(date)"
 
-          JSON_PAYLOAD=$(cat <<EOF
-{
-  "user_email": "ingnichettigb@gmail.com",
-  "phone_number": "+390000000000",
-  "device_id": "device-keepalive",
-  "license_key": "KEEPALIVE-$(date +%s)",
-  "app_id": "47f798c0-9430-4d72-bb8d-b91b72944262",
-  "app_type": "standard",
-  "app_version": "1.0.0",
-  "app_code": "APPTEST",
-  "is_active": true,
-  "auto_renew": false,
-  "apk_sent": false
-}
-EOF
-)
+          PAYLOAD="{\"user_email\":\"ingnichettigb@gmail.com\",\"phone_number\":\"+390000000000\",\"device_id\":\"device-keepalive\",\"license_key\":\"KEEPALIVE-$(date +%s)\",\"app_id\":\"47f798c0-9430-4d72-bb8d-b91b72944262\",\"app_type\":\"standard\",\"app_version\":\"1.0.0\",\"app_code\":\"APPTEST\",\"is_active\":true,\"auto_renew\":false,\"apk_sent\":false}"
 
           echo "Payload JSON:"
-          echo "$JSON_PAYLOAD"
+          echo "$PAYLOAD"
 
           echo "Risposta Supabase:"
           curl -i -X POST "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD"
+            -d "$PAYLOAD"
