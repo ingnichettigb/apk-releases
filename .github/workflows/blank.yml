@@ -6,13 +6,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  ping:
+  keepalive:
     runs-on: ubuntu-latest
     steps:
-      - name: Keepalive → chiama Edge Function
+      - name: Inserisci licenza fittizia per attivare trigger
         run: |
-          curl -X POST "https://ruopxyprezzxoirfrjrm.supabase.co/functions/v1/send-apk-link" \
-            -H "Content-Type: application/json" \
+          curl -X POST "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
-            -d '{"type":"keepalive","email":"ingnichettigb@gmail.com"}'
+            -H "Content-Type: application/json" \
+            -d '{
+              "user_email": "keepalive@system.local",
+              "phone_number": "+390000000000",
+              "device_id": "device-keepalive",
+              "license_key": "KEEPALIVE-'$(date +%s)'",
+              "app_id": "47f798c0-9430-4d72-bb8d-b91b72944262",
+              "app_type": "standard",
+              "app_version": "1.0.0",
+              "app_code": "APPTEST",
+              "is_active": true,
+              "auto_renew": false,
+              "apk_sent": false
+            }'
+
 
