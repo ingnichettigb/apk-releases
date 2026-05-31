@@ -1,4 +1,4 @@
-# REV: 006 - 2026-05-31 17:57
+# REV: 007 — 2026-05-31 18:10 — File attivo
 name: Mantieni Progetto Attivo
 
 on:
@@ -12,12 +12,13 @@ jobs:
     steps:
       - name: Inserisci licenza fittizia per attivare trigger
         run: |
+          echo "Esecuzione workflow REV 008 — $(date)"
           curl -X POST "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Content-Type: application/json" \
             -d '{
-              "user_email": "keepalive@system.local",
+              "user_email": "ingnichettigb@gmail.com",
               "phone_number": "+390000000000",
               "device_id": "device-keepalive",
               "license_key": "KEEPALIVE-'$(date +%s)'",
