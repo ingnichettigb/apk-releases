@@ -1,7 +1,9 @@
-# REV: 012d - 2026-05-31 19:00 - DEBUG MODE (NO HEREDOC)
-name: Mantieni Progetto Attivo - DEBUG
+# REV: 013 - 2026-05-31 19:30 - FIX SCHEDULE + CRON
+name: Mantieni Progetto Attivo
 
 on:
+  schedule:
+    - cron: '0 10 */5 * *'
   workflow_dispatch:
 
 jobs:
@@ -10,61 +12,46 @@ jobs:
     steps:
       - name: STEP 1 - Avvio workflow
         run: |
-          echo "=== DEBUG STEP 1 ==="
-          echo "Workflow avviato alle: $(date)"
-          echo "Branch: $GITHUB_REF"
-          echo "Commit: $GITHUB_SHA"
-          echo "===================="
+          echo "=== STEP 1 ==="
+          echo "Workflow avviato: $(date)"
+          echo "==============="
 
       - name: STEP 2 - Genero LICENSE_KEY
         run: |
-          echo "=== DEBUG STEP 2 ==="
+          echo "=== STEP 2 ==="
           LICENSE_KEY="KEEPALIVE-$(date +%s)"
-          echo "LICENSE_KEY generata: $LICENSE_KEY"
-          echo "$LICENSE_KEY" > license_key.txt
-          echo "===================="
+          echo "LICENSE_KEY: $LICENSE_KEY"
+          echo "LICENSE_KEY=$LICENSE_KEY" >> $GITHUB_ENV
+          echo "==============="
 
-      - name: STEP 3 - Costruisco JSON (NO HEREDOC)
+      - name: STEP 3 - Invio a Supabase
         run: |
-          echo "=== DEBUG STEP 3 ==="
-          LICENSE_KEY=$(cat license_key.txt)
-
-          echo "{" > payload.json
-          echo "  \"user_email\": \"ingnichettigb@gmail.com\"," >> payload.json
-          echo "  \"phone_number\": \"+390000000000\"," >> payload.json
-          echo "  \"device_id\": \"device-keepalive\"," >> payload.json
-          echo "  \"license_key\": \"${LICENSE_KEY}\"," >> payload.json
-          echo "  \"app_id\": \"47f798c0-9430-4d72-bb8d-b91b72944262\"," >> payload.json
-          echo "  \"app_type\": \"standard\"," >> payload.json
-          echo "  \"app_version\": \"1.0.0\"," >> payload.json
-          echo "  \"app_code\": \"APPTEST\"," >> payload.json
-          echo "  \"is_active\": true," >> payload.json
-          echo "  \"auto_renew\": false," >> payload.json
-          echo "  \"apk_sent\": false" >> payload.json
-          echo "}" >> payload.json
-
-          echo "JSON costruito:"
-          cat payload.json
-          echo "===================="
-
-      - name: STEP 4 - Valido JSON localmente
-        run: |
-          echo "=== DEBUG STEP 4 ==="
-          jq . payload.json
-          echo "JSON valido"
-          echo "===================="
-
-      - name: STEP 5 - Invio a Supabase
-        run: |
-          echo "=== DEBUG STEP 5 ==="
-          echo "Invio payload a Supabase..."
-          echo "----------------------------"
-          curl -v -i -X POST "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
+          echo "=== STEP 3 ==="
+          HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" -X POST \
+            "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Content-Type: application/json" \
-            --data-binary "@payload.json"
-          echo "----------------------------"
-          echo "FINE CURL"
-          echo "===================="
-
+            -H "Prefer: return=representation" \
+            -d "{
+              \"user_email\": \"ingnichettigb@gmail.com\",
+              \"phone_number\": \"+390000000000\",
+              \"device_id\": \"device-keepalive-${{ github.run_id }}\",
+              \"license_key\": \"$LICENSE_KEY\",
+              \"app_id\": \"47f798c0-9430-4d72-bb8d-b91b72944262\",
+              \"app_type\": \"standard\",
+              \"app_version\": \"1.0.0\",
+              \"app_code\": \"APPTEST\",
+              \"is_active\": true,
+              \"auto_renew\": false,
+              \"apk_sent\": false
+            }")
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Risposta: $(cat response.txt)"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "SUCCESSO"
+          else
+            echo "ERRORE - Status: $HTTP_STATUS"
+            exit 1
+          fi
+          echo "==============="
