@@ -1,9 +1,7 @@
-# REV: 011 - 2026-05-31 18:50 - DEBUG MODE (ASCII SAFE)
+# REV: 011a - 2026-05-31 18:50 - DEBUG MODE (ASCII SAFE)
 name: Mantieni Progetto Attivo - DEBUG
-
 on:
   workflow_dispatch:
-
 jobs:
   keepalive:
     runs-on: ubuntu-latest
@@ -28,23 +26,21 @@ jobs:
         run: |
           echo "=== DEBUG STEP 3 ==="
           LICENSE_KEY=$(cat license_key.txt)
-
           cat > payload.json <<EOF
-{
-  "user_email": "ingnichettigb@gmail.com",
-  "phone_number": "+390000000000",
-  "device_id": "device-keepalive",
-  "license_key": "$LICENSE_KEY",
-  "app_id": "47f798c0-9430-4d72-bb8d-b91b72944262",
-  "app_type": "standard",
-  "app_version": "1.0.0",
-  "app_code": "APPTEST",
-  "is_active": true,
-  "auto_renew": false,
-  "apk_sent": false
-}
-EOF
-
+          {
+            "user_email": "ingnichettigb@gmail.com",
+            "phone_number": "+390000000000",
+            "device_id": "device-keepalive",
+            "license_key": "$LICENSE_KEY",
+            "app_id": "47f798c0-9430-4d72-bb8d-b91b72944262",
+            "app_type": "standard",
+            "app_version": "1.0.0",
+            "app_code": "APPTEST",
+            "is_active": true,
+            "auto_renew": false,
+            "apk_sent": false
+          }
+          EOF
           echo "JSON costruito:"
           cat payload.json
           echo "===================="
