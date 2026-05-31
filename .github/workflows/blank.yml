@@ -1,27 +1,69 @@
-# REV: 008a — 2026-05-31 18:30 — File attivo
-name: Mantieni Progetto Attivo
+# REV: 009 — 2026-05-31 18:40 — DEBUG MODE
+name: Mantieni Progetto Attivo — DEBUG
 
 on:
-  schedule:
-    - cron: '0 0 */5 * *'
   workflow_dispatch:
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
     steps:
-      - name: Inserisci licenza fittizia per attivare trigger
+      - name: STEP 1 — Avvio workflow
         run: |
-          echo "Esecuzione workflow REV 008 — $(date)"
+          echo "=== DEBUG STEP 1 ==="
+          echo "Workflow avviato alle: $(date)"
+          echo "Branch: $GITHUB_REF"
+          echo "Commit: $GITHUB_SHA"
+          echo "===================="
 
-          PAYLOAD="{\"user_email\":\"ingnichettigb@gmail.com\",\"phone_number\":\"+390000000000\",\"device_id\":\"device-keepalive\",\"license_key\":\"KEEPALIVE-$(date +%s)\",\"app_id\":\"47f798c0-9430-4d72-bb8d-b91b72944262\",\"app_type\":\"standard\",\"app_version\":\"1.0.0\",\"app_code\":\"APPTEST\",\"is_active\":true,\"auto_renew\":false,\"apk_sent\":false}"
+      - name: STEP 2 — Genero LICENSE_KEY
+        run: |
+          echo "=== DEBUG STEP 2 ==="
+          LICENSE_KEY="KEEPALIVE-$(date +%s)"
+          echo "LICENSE_KEY generata: $LICENSE_KEY"
+          echo "$LICENSE_KEY" > license_key.txt
+          echo "===================="
 
-          echo "Payload JSON:"
+      - name: STEP 3 — Costruisco JSON
+        run: |
+          echo "=== DEBUG STEP 3 ==="
+          LICENSE_KEY=$(cat license_key.txt)
+
+          printf -v PAYLOAD '{
+            "user_email": "ingnichettigb@gmail.com",
+            "phone_number": "+390000000000",
+            "device_id": "device-keepalive",
+            "license_key": "%s",
+            "app_id": "47f798c0-9430-4d72-bb8d-b91b72944262",
+            "app_type": "standard",
+            "app_version": "1.0.0",
+            "app_code": "APPTEST",
+            "is_active": true,
+            "auto_renew": false,
+            "apk_sent": false
+          }' "$LICENSE_KEY"
+
+          echo "JSON costruito:"
           echo "$PAYLOAD"
+          echo "$PAYLOAD" > payload.json
+          echo "===================="
 
-          echo "Risposta Supabase:"
-          curl -i -X POST "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
+      - name: STEP 4 — Valido JSON localmente
+        run: |
+          echo "=== DEBUG STEP 4 ==="
+          cat payload.json | jq .
+          echo "JSON valido ✔"
+          echo "===================="
+
+      - name: STEP 5 — Invio a Supabase
+        run: |
+          echo "=== DEBUG STEP 5 ==="
+          echo "Invio payload a Supabase..."
+          echo "----------------------------"
+          curl -v -i -X POST "https://ruopxyprezzxoirfrjrm.supabase.co/rest/v1/licenses" \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD"
+            --data-binary "@payload.json"
+          echo "----------------------------"
+          echo "FINE CURL
