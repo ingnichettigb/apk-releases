@@ -1,4 +1,4 @@
-# REV: 009 — 2026-05-31 18:40 — DEBUG MODE
+# REV: 010 — 2026-05-31 18:45 — DEBUG MODE (SAFE JSON)
 name: Mantieni Progetto Attivo — DEBUG
 
 on:
@@ -24,34 +24,35 @@ jobs:
           echo "$LICENSE_KEY" > license_key.txt
           echo "===================="
 
-      - name: STEP 3 — Costruisco JSON
+      - name: STEP 3 — Costruisco JSON (SAFE MODE)
         run: |
           echo "=== DEBUG STEP 3 ==="
           LICENSE_KEY=$(cat license_key.txt)
 
-          printf -v PAYLOAD '{
-            "user_email": "ingnichettigb@gmail.com",
-            "phone_number": "+390000000000",
-            "device_id": "device-keepalive",
-            "license_key": "%s",
-            "app_id": "47f798c0-9430-4d72-bb8d-b91b72944262",
-            "app_type": "standard",
-            "app_version": "1.0.0",
-            "app_code": "APPTEST",
-            "is_active": true,
-            "auto_renew": false,
-            "apk_sent": false
-          }' "$LICENSE_KEY"
+          cat > payload.json <<EOF
+{
+  "user_email": "ingnichettigb@gmail.com",
+  "phone_number": "+390000000000",
+  "device_id": "device-keepalive",
+  "license_key": "$LICENSE_KEY",
+  "app_id": "47f798c0-9430-4d72-bb8d-b91b72944262",
+  "app_type": "standard",
+  "app_version": "1.0.0",
+  "app_code": "APPTEST",
+  "is_active": true,
+  "auto_renew": false,
+  "apk_sent": false
+}
+EOF
 
           echo "JSON costruito:"
-          echo "$PAYLOAD"
-          echo "$PAYLOAD" > payload.json
+          cat payload.json
           echo "===================="
 
       - name: STEP 4 — Valido JSON localmente
         run: |
           echo "=== DEBUG STEP 4 ==="
-          cat payload.json | jq .
+          jq . payload.json
           echo "JSON valido ✔"
           echo "===================="
 
@@ -66,4 +67,6 @@ jobs:
             -H "Content-Type: application/json" \
             --data-binary "@payload.json"
           echo "----------------------------"
-          echo "FINE CURL
+          echo "FINE CURL"
+          echo "===================="
+
